@@ -1,0 +1,282 @@
+4<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUXX MODZ</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;font-family:'Orbitron',sans-serif}
+body{
+ margin:0;
+ background:black;
+ color:white;
+ overflow:hidden;
+}
+
+/* MATRIX BACKGROUND */
+canvas{
+ position:fixed;
+ inset:0;
+ z-index:-1;
+}
+
+/* TERMINAL FRAME */
+.frame{
+ width:92%;
+ max-width:460px;
+ margin:12vh auto;
+ border-radius:20px;
+ padding:24px;
+ background:rgba(10,0,25,.92);
+ border:2px solid #a855ff;
+ box-shadow:0 0 35px #a855ff;
+ animation:float 4s ease-in-out infinite;
+}
+@keyframes float{
+ 0%,100%{transform:translateY(0)}
+ 50%{transform:translateY(-10px)}
+}
+
+.title{
+ text-align:center;
+ font-size:2rem;
+ color:#a855ff;
+ text-shadow:0 0 25px #a855ff;
+ margin-bottom:12px;
+}
+
+/* TERMINAL */
+.terminal{
+ font-size:.8rem;
+ color:#00ffe1;
+ min-height:150px;
+ white-space:pre-wrap;
+}
+.cursor{
+ display:inline-block;
+ width:8px;
+ background:#00ffe1;
+ margin-left:2px;
+ animation:blink 1s infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* PANEL */
+.panel{
+ position:fixed;
+ inset:0;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ background:rgba(0,0,0,.75);
+ opacity:0;
+ pointer-events:none;
+ transition:opacity .8s ease;
+}
+.panel.show{
+ opacity:1;
+ pointer-events:auto;
+}
+
+/* CARD */
+.card{
+ width:90%;
+ max-width:420px;
+ background:rgba(25,0,50,.96);
+ padding:26px;
+ border-radius:20px;
+ box-shadow:0 0 45px #a855ff;
+ animation:slideUp .8s ease;
+}
+@keyframes slideUp{
+ from{transform:translateY(40px)}
+ to{transform:translateY(0)}
+}
+
+/* HACKER SYMBOL */
+.hacker-symbol{
+ text-align:center;
+ font-size:2.4rem;
+ color:#a855ff;
+ margin-bottom:14px;
+ text-shadow:0 0 20px #a855ff,0 0 40px #7b2cff;
+}
+
+/* FIELDS */
+.field{margin-top:18px}
+.label{
+ font-size:.7rem;
+ color:#caa9ff;
+ margin-bottom:6px;
+}
+.valueRow{
+ display:flex;
+ gap:10px;
+}
+.value{
+ flex:1;
+ padding:12px;
+ background:black;
+ border-radius:12px;
+ border:1px solid #a855ff;
+ letter-spacing:1.5px;
+ color:#00ffe1;
+}
+.password{color:#ff4df3}
+
+.copy{
+ padding:12px 16px;
+ background:#a855ff;
+ border:none;
+ border-radius:12px;
+ font-weight:bold;
+ color:black;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div class="frame">
+ <div class="title">BUXX MODZ</div>
+ <div class="terminal" id="terminal"><span class="cursor"></span></div>
+</div>
+
+<div class="panel" id="panel">
+ <div class="card">
+
+  <div class="hacker-symbol">⌬</div>
+
+  <div class="field">
+   <div class="label">USERNAME</div>
+   <div class="valueRow">
+    <div class="value" id="user">██████</div>
+    <button class="copy" onclick="copyValue(event,'user')">COPY</button>
+   </div>
+  </div>
+
+  <div class="field">
+   <div class="label">PASSWORD</div>
+   <div class="valueRow">
+    <div class="value password" id="pass">██████</div>
+    <button class="copy" onclick="copyValue(event,'pass')">COPY</button>
+   </div>
+  </div>
+
+ </div>
+</div>
+
+<script>
+/* MATRIX (LIGHTWEIGHT) */
+const canvas=document.getElementById("matrix");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+
+const size=16;
+const cols=Math.floor(canvas.width/size);
+const drops=Array(cols).fill(1);
+
+setInterval(()=>{
+ ctx.fillStyle="rgba(0,0,0,0.08)";
+ ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle="#a855ff";
+ ctx.font=size+"px monospace";
+
+ for(let i=0;i<drops.length;i++){
+  const t=Math.random()>0.5?"0":"1";
+  ctx.fillText(t,i*size,drops[i]*size);
+  if(drops[i]*size>canvas.height && Math.random()>0.97){
+   drops[i]=0;
+  }
+  drops[i]++;
+ }
+},50);
+
+/* HUMAN TYPING */
+const terminal=document.getElementById("terminal");
+const cursor=document.querySelector(".cursor");
+
+const lines=[
+ "root@buxx:~$ sudo access_vault",
+ "[ OK ] memory mapped",
+ "[ OK ] bypass firewall",
+ "[ OK ] decrypt credentials"
+];
+
+let l=0,c=0;
+function type(){
+ if(l>=lines.length){
+  cursor.remove();
+  setTimeout(showPanel,700);
+  return;
+ }
+ const txt=lines[l];
+ if(c<txt.length){
+  cursor.insertAdjacentText("beforebegin",txt[c]);
+  c++;
+  setTimeout(type,30+Math.random()*60);
+ }else{
+  cursor.insertAdjacentText("beforebegin","\n");
+  c=0;l++;
+  setTimeout(type,300);
+ }
+}
+
+/* PANEL + DECRYPT */
+const panel=document.getElementById("panel");
+const U="BUXX_User";
+const P="BUXX@MODZ#999";
+const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%";
+
+function rand(len){
+ return Array.from({length:len},()=>chars[Math.random()*chars.length|0]).join("");
+}
+
+function showPanel(){
+ panel.classList.add("show");
+ const u=document.getElementById("user");
+ const p=document.getElementById("pass");
+
+ const s=setInterval(()=>{
+  u.textContent=rand(U.length);
+  p.textContent=rand(P.length);
+ },80);
+
+ setTimeout(()=>{
+  clearInterval(s);
+  u.textContent=U;
+  p.textContent=P;
+ },2500);
+}
+
+/* MOBILE-SAFE COPY (NO GLITCH) */
+function copyValue(e,id){
+ const text=document.getElementById(id).textContent;
+ const ta=document.createElement("textarea");
+ ta.value=text;
+ document.body.appendChild(ta);
+ ta.select();
+ document.execCommand("copy");
+ document.body.removeChild(ta);
+
+ const btn=e.target;
+ btn.textContent="COPIED";
+ btn.style.background="#00ffe1";
+
+ setTimeout(()=>{
+  btn.textContent="COPY";
+  btn.style.background="#a855ff";
+ },1000);
+}
+
+type();
+</script>
+
+</body>
+</html>
